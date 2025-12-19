@@ -29,3 +29,4 @@ def find_substring(text, substring):
 
 def replace_text(text, old, new):
     return text.replace(old, new)
+ 
