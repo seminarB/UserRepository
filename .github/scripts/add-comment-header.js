@@ -31,8 +31,8 @@ module.exports = async ({ github, context, changedFiles }) => {
         continue;
       }
 
-      // レビューコメントの本文を作成
-      const commentBody = createCommentBody(HEADER_COMMENT);
+      // レビューコメントの本文を作成（1行目の内容を含める）
+      const commentBody = createCommentBody(HEADER_COMMENT, firstLine);
 
       // レビューコメントを投稿
       await postReviewComment(github, context, file, commentBody);
@@ -45,12 +45,15 @@ module.exports = async ({ github, context, changedFiles }) => {
 
 /**
  * レビューコメントの本文を生成
+ * @param {string} headerComment - 追加するコメント
+ * @param {string} firstLine - ファイルの1行目の内容
  */
-function createCommentBody(headerComment) {
+function createCommentBody(headerComment, firstLine) {
   return `このファイルの先頭に以下のコメントを追加することを提案します:
 
-\`\`\`python
+\`\`\`suggestion
 ${headerComment}
+${firstLine}
 \`\`\``;
 }
 
