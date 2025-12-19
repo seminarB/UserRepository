@@ -1,4 +1,4 @@
-def reverse_string(text):
+def reverse_String(text):
     return text[::-1]
 
 
