@@ -1,4 +1,4 @@
-def reverse_string(text):
+def reverse_string(text): 
     return text[::-1]
 
 
@@ -29,4 +29,3 @@ def find_substring(text, substring):
 
 def replace_text(text, old, new):
     return text.replace(old, new)
- 
