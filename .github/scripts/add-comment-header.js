@@ -55,13 +55,38 @@ module.exports = async ({ github, context, changedFiles }) => {
 };
 
 /**
- * レビューコメントの本文を生成
+ * Pythonスクリプトを使ってファイルを解析
  */
-function createCommentBody(headerComment) {
-  return `このファイルの先頭に以下のコメントを追加することを提案します:
+function analyzeFileWithPython(fileContent, testPyPath, wrapperScript) {
+  try {
+    const result = execSync(`python3 ${wrapperScript} ${testPyPath}`, {
+      input: fileContent,
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024 // 10MB
+    });
 
-\`\`\`python
-${headerComment}
+    return JSON.parse(result);
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Suggestion形式のレビューコメントを生成
+ * @param {string} fileContent - ファイル全体の内容
+ * @param {number} line - コメントを追加する行番号（1始まり）
+ * @param {string} comment - 追加するコメント
+ */
+function createSuggestionComment(fileContent, line, comment) {
+  const lines = fileContent.split('\n');
+  const targetLine = lines[line - 1] || ''; // 0始まりに変換
+
+  // suggestion形式：コメントと既存の行を含める
+  return `以下のコメントを${line}行目に追加することを提案します:
+
+\`\`\`suggestion
+${comment}
+${targetLine}
 \`\`\``;
 }
 
