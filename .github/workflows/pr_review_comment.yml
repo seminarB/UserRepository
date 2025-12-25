@@ -36,6 +36,22 @@ jobs:
           files: |
             **/*.py
 
+      - name: Debug changed files
+        run: |
+          echo "=== Changed Files Debug Info ==="
+          echo "Any changed: ${{ steps.changed-files.outputs.any_changed }}"
+          echo "All changed files: ${{ steps.changed-files.outputs.all_changed_files }}"
+          echo "Changed files count: ${{ steps.changed-files.outputs.all_changed_files_count }}"
+          echo "=== End Debug Info ==="
+
+      - name: Check if should post comments
+        run: |
+          if [ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]; then
+            echo "✓ Python files were changed, will post review comments"
+          else
+            echo "⚠ No Python files changed, skipping review comments"
+          fi
+
       - name: Post review comments
         if: steps.changed-files.outputs.any_changed == 'true'
         uses: actions/github-script@v7
@@ -44,4 +60,6 @@ jobs:
           script: |
             const script = require('./.github/scripts/add-comment-header.js');
             const changedFiles = '${{ steps.changed-files.outputs.all_changed_files }}'.split(' ');
+            console.log('Starting review comment script...');
+            console.log('Changed files:', changedFiles);
             await script({ github, context, changedFiles });
