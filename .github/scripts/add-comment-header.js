@@ -36,24 +36,37 @@ module.exports = async ({ github, context, changedFiles }) => {
         continue;
       }
 
-      // 解析結果からコメント情報を取得
-      const { line, comment } = analysisResult;
+      // 解析結果を配列として処理（単一のオブジェクトの場合は配列に変換）
+      const comments = Array.isArray(analysisResult) ? analysisResult : [analysisResult];
 
-      if (!line || !comment) {
-        console.log(`Skipping ${file}: no comment needed`);
+      // コメントが空の場合はスキップ
+      if (comments.length === 0) {
+        console.log(`Skipping ${file}: no comments needed`);
         continue;
       }
 
-      // コメントをPython形式に変換（既に # で始まっている場合はそのまま使用）
-      const pythonComment = comment.trim().startsWith('#') ? comment : `# ${comment}`;
+      console.log(`Found ${comments.length} comment(s) for ${file}`);
 
-      console.log(`Adding comment to ${file}:${line} - "${pythonComment}"`);
+      // 各コメントを処理
+      for (const item of comments) {
+        const { line, comment } = item;
 
-      // レビューコメントの本文を作成
-      const commentBody = createSuggestionComment(content, line, pythonComment);
+        if (!line || !comment) {
+          console.log(`Skipping invalid comment entry: line=${line}, comment=${comment}`);
+          continue;
+        }
 
-      // レビューコメントを投稿
-      await postReviewComment(github, context, file, line, commentBody);
+        // コメントをPython形式に変換（既に # で始まっている場合はそのまま使用）
+        const pythonComment = comment.trim().startsWith('#') ? comment : `# ${comment}`;
+
+        console.log(`Adding comment to ${file}:${line} - "${pythonComment}"`);
+
+        // レビューコメントの本文を作成
+        const commentBody = createSuggestionComment(content, line, pythonComment);
+
+        // レビューコメントを投稿
+        await postReviewComment(github, context, file, line, commentBody);
+      }
 
     } catch (error) {
       console.error(`Error processing ${file}:`, error.message);
