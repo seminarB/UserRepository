@@ -1,5 +1,5 @@
 def reverse_string(text):
-    return text[::-1]
+    return text[::-1] 
 
 
 def count_words(text):
