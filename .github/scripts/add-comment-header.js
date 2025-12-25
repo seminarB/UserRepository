@@ -44,10 +44,13 @@ module.exports = async ({ github, context, changedFiles }) => {
         continue;
       }
 
-      console.log(`Adding comment to ${file}:${line} - "${comment}"`);
+      // コメントをPython形式に変換（既に # で始まっている場合はそのまま使用）
+      const pythonComment = comment.trim().startsWith('#') ? comment : `# ${comment}`;
+
+      console.log(`Adding comment to ${file}:${line} - "${pythonComment}"`);
 
       // レビューコメントの本文を作成
-      const commentBody = createSuggestionComment(content, line, comment);
+      const commentBody = createSuggestionComment(content, line, pythonComment);
 
       // レビューコメントを投稿
       await postReviewComment(github, context, file, line, commentBody);
