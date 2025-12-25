@@ -1,12 +1,12 @@
 /**
  * PR Review Script: Add Comment Header
- *
- * このスクリプトは、PRで変更されたPythonファイルの先頭に
- * `# this is a comment` を追加することを提案するレビューコメントを投稿します。
  */
 
+const { execSync } = require('child_process');
+
 module.exports = async ({ github, context, changedFiles }) => {
-  const HEADER_COMMENT = '# this is a comment';
+  const TEST_PY_PATH = '/tmp/test.py';
+  const WRAPPER_SCRIPT = '.github/scripts/call_python_analyzer.py';
 
   for (const file of changedFiles) {
     if (!file) continue;
@@ -23,19 +23,30 @@ module.exports = async ({ github, context, changedFiles }) => {
       });
 
       const content = Buffer.from(fileContent.content, 'base64').toString('utf-8');
-      const firstLine = content.split('\n')[0] || '';
 
-      // 既にコメントが存在する場合はスキップ
-      if (firstLine.trim() === HEADER_COMMENT) {
-        console.log(`Skipping ${file}: comment already exists`);
+      // Pythonスクリプトを呼び出してファイルを解析
+      const analysisResult = await analyzeFileWithPython(content, TEST_PY_PATH, WRAPPER_SCRIPT);
+
+      if (analysisResult.error) {
+        console.error(`Analysis error for ${file}:`, analysisResult.error);
         continue;
       }
 
-      // レビューコメントの本文を作成（1行目の内容を含める）
-      const commentBody = createCommentBody(HEADER_COMMENT, firstLine);
+      // 解析結果からコメント情報を取得
+      const { line, comment } = analysisResult;
+
+      if (!line || !comment) {
+        console.log(`Skipping ${file}: no comment needed`);
+        continue;
+      }
+
+      console.log(`Adding comment to ${file}:${line} - "${comment}"`);
+
+      // レビューコメントの本文を作成
+      const commentBody = createSuggestionComment(content, line, comment);
 
       // レビューコメントを投稿
-      await postReviewComment(github, context, file, commentBody);
+      await postReviewComment(github, context, file, line, commentBody);
 
     } catch (error) {
       console.error(`Error processing ${file}:`, error.message);
@@ -45,22 +56,20 @@ module.exports = async ({ github, context, changedFiles }) => {
 
 /**
  * レビューコメントの本文を生成
- * @param {string} headerComment - 追加するコメント
- * @param {string} firstLine - ファイルの1行目の内容
  */
-function createCommentBody(headerComment, firstLine) {
+function createCommentBody(headerComment) {
   return `このファイルの先頭に以下のコメントを追加することを提案します:
 
-\`\`\`suggestion
+\`\`\`python
 ${headerComment}
-${firstLine}
 \`\`\``;
 }
 
 /**
  * レビューコメントを投稿
+ * @param {number} line - コメントを付ける行番号
  */
-async function postReviewComment(github, context, file, commentBody) {
+async function postReviewComment(github, context, file, line, commentBody) {
   try {
     await github.rest.pulls.createReviewComment({
       owner: context.repo.owner,
@@ -69,14 +78,14 @@ async function postReviewComment(github, context, file, commentBody) {
       body: commentBody,
       commit_id: context.payload.pull_request.head.sha,
       path: file,
-      line: 1,
+      line: line,
       side: 'RIGHT'
     });
-    console.log(`✓ Review comment posted for ${file}`);
+    console.log(`✓ Review comment posted for ${file}:${line}`);
   } catch (error) {
     // 差分がない行にはコメントできないため、代わりに通常のコメントとして投稿
     if (error.status === 422) {
-      await postIssueComment(github, context, file, commentBody);
+      await postIssueComment(github, context, file, line, commentBody);
     } else {
       throw error;
     }
@@ -86,12 +95,12 @@ async function postReviewComment(github, context, file, commentBody) {
 /**
  * PR全体のコメントとして投稿（差分がない場合のフォールバック）
  */
-async function postIssueComment(github, context, file, commentBody) {
+async function postIssueComment(github, context, file, line, commentBody) {
   await github.rest.issues.createComment({
     owner: context.repo.owner,
     repo: context.repo.repo,
     issue_number: context.payload.pull_request.number,
-    body: `**${file}**\n\n${commentBody}`
+    body: `**${file}:${line}**\n\n${commentBody}`
   });
-  console.log(`✓ Posted as issue comment for ${file}`);
+  console.log(`✓ Posted as issue comment for ${file}:${line}`);
 }
