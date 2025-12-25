@@ -25,6 +25,9 @@ jobs:
       - name: Fetch test.py from external repository
         run: |
           curl -o /tmp/test.py https://raw.githubusercontent.com/seminarB/SeminarB/main/test.py
+          echo "=== Downloaded test.py content ==="
+          cat /tmp/test.py
+          echo "=== End of test.py ==="
 
       - name: Get changed files
         id: changed-files

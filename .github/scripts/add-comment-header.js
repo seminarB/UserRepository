@@ -24,6 +24,10 @@ module.exports = async ({ github, context, changedFiles }) => {
 
       const content = Buffer.from(fileContent.content, 'base64').toString('utf-8');
 
+      console.log(`File content length: ${content.length} characters`);
+      console.log(`Test script path: ${TEST_PY_PATH}`);
+      console.log(`Wrapper script path: ${WRAPPER_SCRIPT}`);
+
       // Pythonスクリプトを呼び出してファイルを解析
       const analysisResult = await analyzeFileWithPython(content, TEST_PY_PATH, WRAPPER_SCRIPT);
 
@@ -62,12 +66,16 @@ function analyzeFileWithPython(fileContent, testPyPath, wrapperScript) {
     const result = execSync(`python3 ${wrapperScript} ${testPyPath}`, {
       input: fileContent,
       encoding: 'utf-8',
-      maxBuffer: 10 * 1024 * 1024 // 10MB
+      maxBuffer: 10 * 1024 * 1024, // 10MB
+      stdio: ['pipe', 'pipe', 'pipe'] // stdin, stdout, stderr
     });
 
     return JSON.parse(result);
   } catch (error) {
-    return { error: error.message };
+    // デバッグ情報を含めてエラーを返す
+    const errorMessage = error.stderr || error.stdout || error.message;
+    console.error('Python execution error:', errorMessage);
+    return { error: errorMessage };
   }
 }
 
