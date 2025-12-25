@@ -17,6 +17,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Fetch test.py from external repository
+        run: |
+          curl -o /tmp/test.py https://raw.githubusercontent.com/seminarB/SeminarB/main/test.py
+
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v44
