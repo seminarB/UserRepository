@@ -24,6 +24,10 @@ module.exports = async ({ github, context, changedFiles }) => {
 
       const content = Buffer.from(fileContent.content, 'base64').toString('utf-8');
 
+      console.log(`File content length: ${content.length} characters`);
+      console.log(`Test script path: ${TEST_PY_PATH}`);
+      console.log(`Wrapper script path: ${WRAPPER_SCRIPT}`);
+
       // Pythonスクリプトを呼び出してファイルを解析
       const analysisResult = await analyzeFileWithPython(content, TEST_PY_PATH, WRAPPER_SCRIPT);
 
@@ -32,21 +36,37 @@ module.exports = async ({ github, context, changedFiles }) => {
         continue;
       }
 
-      // 解析結果からコメント情報を取得
-      const { line, comment } = analysisResult;
+      // 解析結果を配列として処理（単一のオブジェクトの場合は配列に変換）
+      const comments = Array.isArray(analysisResult) ? analysisResult : [analysisResult];
 
-      if (!line || !comment) {
-        console.log(`Skipping ${file}: no comment needed`);
+      // コメントが空の場合はスキップ
+      if (comments.length === 0) {
+        console.log(`Skipping ${file}: no comments needed`);
         continue;
       }
 
-      console.log(`Adding comment to ${file}:${line} - "${comment}"`);
+      console.log(`Found ${comments.length} comment(s) for ${file}`);
 
-      // レビューコメントの本文を作成
-      const commentBody = createSuggestionComment(content, line, comment);
+      // 各コメントを処理
+      for (const item of comments) {
+        const { line, comment } = item;
 
-      // レビューコメントを投稿
-      await postReviewComment(github, context, file, line, commentBody);
+        if (!line || !comment) {
+          console.log(`Skipping invalid comment entry: line=${line}, comment=${comment}`);
+          continue;
+        }
+
+        // コメントをPython形式に変換（既に # で始まっている場合はそのまま使用）
+        const pythonComment = comment.trim().startsWith('#') ? comment : `# ${comment}`;
+
+        console.log(`Adding comment to ${file}:${line} - "${pythonComment}"`);
+
+        // レビューコメントの本文を作成
+        const commentBody = createSuggestionComment(content, line, pythonComment);
+
+        // レビューコメントを投稿
+        await postReviewComment(github, context, file, line, commentBody);
+      }
 
     } catch (error) {
       console.error(`Error processing ${file}:`, error.message);
@@ -55,13 +75,42 @@ module.exports = async ({ github, context, changedFiles }) => {
 };
 
 /**
- * レビューコメントの本文を生成
+ * Pythonスクリプトを使ってファイルを解析
  */
-function createCommentBody(headerComment) {
-  return `このファイルの先頭に以下のコメントを追加することを提案します:
+function analyzeFileWithPython(fileContent, testPyPath, wrapperScript) {
+  try {
+    const result = execSync(`python3 ${wrapperScript} ${testPyPath}`, {
+      input: fileContent,
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024, // 10MB
+      stdio: ['pipe', 'pipe', 'pipe'] // stdin, stdout, stderr
+    });
 
-\`\`\`python
-${headerComment}
+    return JSON.parse(result);
+  } catch (error) {
+    // デバッグ情報を含めてエラーを返す
+    const errorMessage = error.stderr || error.stdout || error.message;
+    console.error('Python execution error:', errorMessage);
+    return { error: errorMessage };
+  }
+}
+
+/**
+ * Suggestion形式のレビューコメントを生成
+ * @param {string} fileContent - ファイル全体の内容
+ * @param {number} line - コメントを追加する行番号（1始まり）
+ * @param {string} comment - 追加するコメント
+ */
+function createSuggestionComment(fileContent, line, comment) {
+  const lines = fileContent.split('\n');
+  const targetLine = lines[line - 1] || ''; // 0始まりに変換
+
+  // suggestion形式：コメントと既存の行を含める
+  return `以下のコメントを${line}行目に追加することを提案します:
+
+\`\`\`suggestion
+${comment}
+${targetLine}
 \`\`\``;
 }
 
