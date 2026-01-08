@@ -5,7 +5,7 @@
 const { execSync } = require('child_process');
 
 module.exports = async ({ github, context, changedFiles }) => {
-  const TEST_PY_PATH = '/tmp/test.py';
+  const TEST_PY_PATH = '/tmp/SeminarB/integration.py';
   const WRAPPER_SCRIPT = '.github/scripts/call_python_analyzer.py';
 
   for (const file of changedFiles) {

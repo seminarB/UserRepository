@@ -22,12 +22,10 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Fetch test.py from external repository
+      - name: Clone SeminarB repository
         run: |
-          curl -o /tmp/test.py https://raw.githubusercontent.com/seminarB/SeminarB/main/test.py
-          echo "=== Downloaded test.py content ==="
-          cat /tmp/test.py
-          echo "=== End of test.py ==="
+          git clone -b integration https://github.com/seminarB/SeminarB.git /tmp/SeminarB
+          echo "=== Cloned SeminarB repository ==="
 
       - name: Get changed files
         id: changed-files
@@ -35,22 +33,6 @@ jobs:
         with:
           files: |
             **/*.py
-
-      - name: Debug changed files
-        run: |
-          echo "=== Changed Files Debug Info ==="
-          echo "Any changed: ${{ steps.changed-files.outputs.any_changed }}"
-          echo "All changed files: ${{ steps.changed-files.outputs.all_changed_files }}"
-          echo "Changed files count: ${{ steps.changed-files.outputs.all_changed_files_count }}"
-          echo "=== End Debug Info ==="
-
-      - name: Check if should post comments
-        run: |
-          if [ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]; then
-            echo "✓ Python files were changed, will post review comments"
-          else
-            echo "⚠ No Python files changed, skipping review comments"
-          fi
 
       - name: Post review comments
         if: steps.changed-files.outputs.any_changed == 'true'
