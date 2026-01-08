@@ -41,7 +41,8 @@ jobs:
             pip install -r /tmp/SeminarB/requirements.txt
           else
             echo "No requirements.txt found, installing common dependencies..."
-            pip install google-generativeai python-dotenv
+            # Install both new and old packages for compatibility
+            pip install google-genai google-generativeai python-dotenv
           fi
           echo "=== Installed packages ==="
           pip list
