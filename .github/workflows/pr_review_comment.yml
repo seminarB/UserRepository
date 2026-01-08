@@ -25,7 +25,13 @@ jobs:
       - name: Clone SeminarB repository
         run: |
           git clone -b integration https://github.com/seminarB/SeminarB.git /tmp/SeminarB
-          echo "=== Cloned SeminarB repository ==="
+          echo "=== Cloned SeminarB repository (integration branch) ==="
+          echo "=== Repository contents ==="
+          ls -la /tmp/SeminarB
+          echo "=== Checking for required files ==="
+          ls -la /tmp/SeminarB/integration.py || echo "integration.py not found"
+          ls -la /tmp/SeminarB/api.py || echo "api.py not found"
+          ls -la /tmp/SeminarB/analyze.py || echo "analyze.py not found"
 
       - name: Get changed files
         id: changed-files

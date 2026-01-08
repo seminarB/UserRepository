@@ -29,7 +29,10 @@ module.exports = async ({ github, context, changedFiles }) => {
       console.log(`Wrapper script path: ${WRAPPER_SCRIPT}`);
 
       // Pythonスクリプトを呼び出してファイルを解析
+      console.log(`Calling Python analyzer with TEST_PY_PATH: ${TEST_PY_PATH}`);
       const analysisResult = await analyzeFileWithPython(content, TEST_PY_PATH, WRAPPER_SCRIPT);
+
+      console.log(`Analysis result:`, JSON.stringify(analysisResult, null, 2));
 
       if (analysisResult.error) {
         console.error(`Analysis error for ${file}:`, analysisResult.error);
@@ -79,6 +82,7 @@ module.exports = async ({ github, context, changedFiles }) => {
  */
 function analyzeFileWithPython(fileContent, testPyPath, wrapperScript) {
   try {
+    console.log(`Executing: python3 ${wrapperScript} ${testPyPath}`);
     const result = execSync(`python3 ${wrapperScript} ${testPyPath}`, {
       input: fileContent,
       encoding: 'utf-8',
@@ -86,11 +90,15 @@ function analyzeFileWithPython(fileContent, testPyPath, wrapperScript) {
       stdio: ['pipe', 'pipe', 'pipe'] // stdin, stdout, stderr
     });
 
+    console.log(`Python stdout: ${result}`);
     return JSON.parse(result);
   } catch (error) {
     // デバッグ情報を含めてエラーを返す
+    console.error('Python execution failed:');
+    console.error('  stdout:', error.stdout);
+    console.error('  stderr:', error.stderr);
+    console.error('  message:', error.message);
     const errorMessage = error.stderr || error.stdout || error.message;
-    console.error('Python execution error:', errorMessage);
     return { error: errorMessage };
   }
 }

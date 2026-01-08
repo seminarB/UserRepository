@@ -3,8 +3,14 @@
 import sys
 import json
 import importlib.util
+import os
 
 def load_test_module(test_py_path):
+    # モジュールのディレクトリをsys.pathに追加して、相対インポートを可能にする
+    module_dir = os.path.dirname(os.path.abspath(test_py_path))
+    if module_dir not in sys.path:
+        sys.path.insert(0, module_dir)
+
     spec = importlib.util.spec_from_file_location("test", test_py_path)
     test_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(test_module)
