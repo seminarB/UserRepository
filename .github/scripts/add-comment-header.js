@@ -59,10 +59,28 @@ module.exports = async ({ github, context, changedFiles }) => {
           continue;
         }
 
-        // コメントをPython形式に変換（既に # で始まっている場合はそのまま使用）
-        const pythonComment = comment.trim().startsWith('#') ? comment : `# ${comment}`;
+        // コメントを適切にフォーマット
+        let formattedComment = comment.trim();
 
-        console.log(`Adding comment to ${file}:${line} - "${pythonComment}"`);
+        // 前後の """ を削除
+        if (formattedComment.startsWith('"""')) {
+          formattedComment = formattedComment.substring(3);
+        }
+        if (formattedComment.endsWith('"""')) {
+          formattedComment = formattedComment.substring(0, formattedComment.length - 3);
+        }
+
+        // 各行の先頭に # を追加
+        const lines = formattedComment.split('\n');
+        const pythonComment = lines
+          .map(line => {
+            const trimmedLine = line.trim();
+            if (trimmedLine === '') return '#';
+            return trimmedLine.startsWith('#') ? trimmedLine : `# ${trimmedLine}`;
+          })
+          .join('\n');
+
+        console.log(`Adding comment to ${file}:${line}`);
 
         // レビューコメントの本文を作成
         const commentBody = createSuggestionComment(content, line, pythonComment);
