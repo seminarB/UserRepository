@@ -46,6 +46,31 @@ jobs:
           echo "=== Installed packages ==="
           pip list
 
+      - name: Setup environment variables
+        run: |
+          echo "=== Setting up environment variables ==="
+          # Create .env file in SeminarB directory for api.py
+          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > /tmp/SeminarB/.env
+            echo "✓ GEMINI_API_KEY configured"
+          else
+            echo "⚠ WARNING: GEMINI_API_KEY not found in secrets"
+            echo "Please add GEMINI_API_KEY to repository secrets"
+          fi
+
+      - name: Test Python imports
+        run: |
+          echo "=== Testing Python imports ==="
+          cd /tmp/SeminarB
+          echo "Testing google.generativeai import..."
+          python3 -c "import google.generativeai as genai; print('✓ google.generativeai imported successfully')" || echo "✗ Failed to import google.generativeai"
+          echo "Checking api.py imports..."
+          python3 -c "import sys; sys.path.insert(0, '/tmp/SeminarB'); exec(open('/tmp/SeminarB/api.py').read())" 2>&1 | head -20 || true
+          echo "Testing individual module imports..."
+          python3 -c "from api import api_call; print('✓ api module imported successfully')" || echo "✗ Failed to import api module"
+          python3 -c "from analyze import main; print('✓ analyze module imported successfully')" || echo "✗ Failed to import analyze module"
+          python3 -c "from integration import receiveFileAndReturnComment; print('✓ integration module imported successfully')" || echo "✗ Failed to import integration module"
+
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v44
