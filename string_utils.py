@@ -35,6 +35,18 @@ def to_uppercase(text):
     return text.upper()
 
 
+# テキストを複数の方法で分析し、その特性を辞書として返す。
+#
+# 引数:
+# text -- 分析対象の文字列。
+# mode -- 分析モード。'full' (詳細なカテゴリ分類、文字数、単語数)、'simple' (文字数、単語数のみ)、'detailed' (文字種別のカウント) のいずれか。デフォルトは 'full'。
+#
+# 戻り値:
+# 分析結果を含む辞書。入力テキストが空の場合は `{"error": "Empty text"}` を返す。
+#
+# 制約事項:
+# `mode`引数は'full', 'simple', 'detailed'のいずれかでなければなりません。これら以外の値が指定された場合、一部の分析結果のみが返される可能性があります。
+#
 def complex_text_analyzer(text, mode='full'): 
     """
     A complex function that analyzes text in multiple ways.
