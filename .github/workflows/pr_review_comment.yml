@@ -33,6 +33,19 @@ jobs:
           ls -la /tmp/SeminarB/api.py || echo "api.py not found"
           ls -la /tmp/SeminarB/analyze.py || echo "analyze.py not found"
 
+      - name: Install Python dependencies
+        run: |
+          echo "=== Installing Python dependencies ==="
+          if [ -f /tmp/SeminarB/requirements.txt ]; then
+            echo "Found requirements.txt, installing dependencies..."
+            pip install -r /tmp/SeminarB/requirements.txt
+          else
+            echo "No requirements.txt found, installing common dependencies..."
+            pip install google-generativeai
+          fi
+          echo "=== Installed packages ==="
+          pip list
+
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v44
