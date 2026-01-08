@@ -27,14 +27,20 @@ def main():
     file_content = sys.stdin.read()
 
     try:
+        # デバッグ出力を抑制するために、一時的にstdoutをリダイレクト
+        import io
+        import contextlib
+
         # test.pyをロード
         test_module = load_test_module(test_py_path)
 
         # receiveFileAndReturnComment関数を呼び出す
-        # ファイル内容を文字列として渡す
-        result = test_module.receiveFileAndReturnComment(file_content)
+        # デバッグ出力をキャプチャして捨てる
+        debug_output = io.StringIO()
+        with contextlib.redirect_stdout(debug_output):
+            result = test_module.receiveFileAndReturnComment(file_content)
 
-        # 結果をJSON形式で出力
+        # 結果をJSON形式で出力（この出力だけが標準出力に行く）
         print(json.dumps(result, ensure_ascii=False))
 
     except Exception as e:
