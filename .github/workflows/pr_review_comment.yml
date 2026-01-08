@@ -22,9 +22,55 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Fetch test.py from external repository
+      - name: Clone SeminarB repository
         run: |
-          curl -o /tmp/test.py https://raw.githubusercontent.com/seminarB/SeminarB/main/test.py
+          git clone -b integration https://github.com/seminarB/SeminarB.git /tmp/SeminarB
+          echo "=== Cloned SeminarB repository (integration branch) ==="
+          echo "=== Repository contents ==="
+          ls -la /tmp/SeminarB
+          echo "=== Checking for required files ==="
+          ls -la /tmp/SeminarB/integration.py || echo "integration.py not found"
+          ls -la /tmp/SeminarB/api.py || echo "api.py not found"
+          ls -la /tmp/SeminarB/analyze.py || echo "analyze.py not found"
+
+      - name: Install Python dependencies
+        run: |
+          echo "=== Installing Python dependencies ==="
+          if [ -f /tmp/SeminarB/requirements.txt ]; then
+            echo "Found requirements.txt, installing dependencies..."
+            pip install -r /tmp/SeminarB/requirements.txt
+          else
+            echo "No requirements.txt found, installing common dependencies..."
+            # Install both new and old packages for compatibility
+            pip install google-genai google-generativeai python-dotenv
+          fi
+          echo "=== Installed packages ==="
+          pip list
+
+      - name: Setup environment variables
+        run: |
+          echo "=== Setting up environment variables ==="
+          # Create .env file in SeminarB directory for api.py
+          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > /tmp/SeminarB/.env
+            echo "✓ GEMINI_API_KEY configured"
+          else
+            echo "⚠ WARNING: GEMINI_API_KEY not found in secrets"
+            echo "Please add GEMINI_API_KEY to repository secrets"
+          fi
+
+      - name: Test Python imports
+        run: |
+          echo "=== Testing Python imports ==="
+          cd /tmp/SeminarB
+          echo "Testing google.generativeai import..."
+          python3 -c "import google.generativeai as genai; print('✓ google.generativeai imported successfully')" || echo "✗ Failed to import google.generativeai"
+          echo "Checking api.py imports..."
+          python3 -c "import sys; sys.path.insert(0, '/tmp/SeminarB'); exec(open('/tmp/SeminarB/api.py').read())" 2>&1 | head -20 || true
+          echo "Testing individual module imports..."
+          python3 -c "from api import api_call; print('✓ api module imported successfully')" || echo "✗ Failed to import api module"
+          python3 -c "from analyze import main; print('✓ analyze module imported successfully')" || echo "✗ Failed to import analyze module"
+          python3 -c "from integration import receiveFileAndReturnComment; print('✓ integration module imported successfully')" || echo "✗ Failed to import integration module"
 
       - name: Get changed files
         id: changed-files
@@ -41,4 +87,6 @@ jobs:
           script: |
             const script = require('./.github/scripts/add-comment-header.js');
             const changedFiles = '${{ steps.changed-files.outputs.all_changed_files }}'.split(' ');
+            console.log('Starting review comment script...');
+            console.log('Changed files:', changedFiles);
             await script({ github, context, changedFiles });
