@@ -35,7 +35,7 @@ def to_uppercase(text):
     return text.upper()
 
 
-def complex_text_analyzer(text, mode='full'):
+def complex_text_analyzer(text, mode='full'): 
     """
     A complex function that analyzes text in multiple ways.
     This function has multiple branches to trigger code review.
