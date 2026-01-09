@@ -24,8 +24,8 @@ jobs:
 
       - name: Clone SeminarB repository
         run: |
-          git clone -b integration https://github.com/seminarB/SeminarB.git /tmp/SeminarB
-          echo "=== Cloned SeminarB repository (integration branch) ==="
+          git clone https://github.com/seminarB/SeminarB.git /tmp/SeminarB
+          echo "=== Cloned SeminarB repository ==="
           echo "=== Repository contents ==="
           ls -la /tmp/SeminarB
           echo "=== Checking for required files ==="
