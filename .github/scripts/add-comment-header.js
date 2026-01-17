@@ -91,6 +91,8 @@ module.exports = async ({ github, context, changedFiles }) => {
 
     } catch (error) {
       console.error(`Error processing ${file}:`, error.message);
+      console.error(`Error stack:`, error.stack);
+      console.error(`Error details:`, JSON.stringify(error, null, 2));
     }
   }
 };
@@ -146,6 +148,15 @@ ${targetLine}
  */
 async function postReviewComment(github, context, file, line, commentBody) {
   try {
+    console.log(`[DEBUG] Attempting to post review comment:`);
+    console.log(`  - owner: ${context.repo.owner}`);
+    console.log(`  - repo: ${context.repo.repo}`);
+    console.log(`  - pull_number: ${context.payload.pull_request.number}`);
+    console.log(`  - commit_id: ${context.payload.pull_request.head.sha}`);
+    console.log(`  - path: ${file}`);
+    console.log(`  - line: ${line}`);
+    console.log(`  - body length: ${commentBody.length} characters`);
+
     await github.rest.pulls.createReviewComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
@@ -158,8 +169,17 @@ async function postReviewComment(github, context, file, line, commentBody) {
     });
     console.log(`✓ Review comment posted for ${file}:${line}`);
   } catch (error) {
+    console.error(`[ERROR] Failed to post review comment for ${file}:${line}`);
+    console.error(`  - Error name: ${error.name}`);
+    console.error(`  - Error message: ${error.message}`);
+    console.error(`  - Error status: ${error.status}`);
+    console.error(`  - Error code: ${error.code}`);
+    console.error(`  - Error response:`, JSON.stringify(error.response?.data, null, 2));
+    console.error(`  - Full error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+
     // 差分がない行にはコメントできないため、代わりに通常のコメントとして投稿
     if (error.status === 422) {
+      console.log(`[INFO] Attempting to post as issue comment instead (422 error)`);
       await postIssueComment(github, context, file, line, commentBody);
     } else {
       throw error;
@@ -171,11 +191,26 @@ async function postReviewComment(github, context, file, line, commentBody) {
  * PR全体のコメントとして投稿（差分がない場合のフォールバック）
  */
 async function postIssueComment(github, context, file, line, commentBody) {
-  await github.rest.issues.createComment({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    issue_number: context.payload.pull_request.number,
-    body: `**${file}:${line}**\n\n${commentBody}`
-  });
-  console.log(`✓ Posted as issue comment for ${file}:${line}`);
+  try {
+    console.log(`[DEBUG] Attempting to post issue comment:`);
+    console.log(`  - owner: ${context.repo.owner}`);
+    console.log(`  - repo: ${context.repo.repo}`);
+    console.log(`  - issue_number: ${context.payload.pull_request.number}`);
+
+    await github.rest.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: context.payload.pull_request.number,
+      body: `**${file}:${line}**\n\n${commentBody}`
+    });
+    console.log(`✓ Posted as issue comment for ${file}:${line}`);
+  } catch (error) {
+    console.error(`[ERROR] Failed to post issue comment for ${file}:${line}`);
+    console.error(`  - Error name: ${error.name}`);
+    console.error(`  - Error message: ${error.message}`);
+    console.error(`  - Error status: ${error.status}`);
+    console.error(`  - Error code: ${error.code}`);
+    console.error(`  - Error response:`, JSON.stringify(error.response?.data, null, 2));
+    throw error;
+  }
 }
