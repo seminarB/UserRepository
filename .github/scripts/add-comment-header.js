@@ -178,8 +178,8 @@ async function postReviewComment(github, context, file, line, commentBody) {
     console.error(`  - Full error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
 
     // 差分がない行にはコメントできないため、代わりに通常のコメントとして投稿
-    if (error.status === 422) {
-      console.log(`[INFO] Attempting to post as issue comment instead (422 error)`);
+    if (error.status === 422 || error.status === 500) {
+      console.log(`[INFO] Attempting to post as issue comment instead (${error.status} error)`);
       await postIssueComment(github, context, file, line, commentBody);
     } else {
       throw error;
